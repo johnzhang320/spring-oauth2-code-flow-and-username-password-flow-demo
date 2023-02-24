@@ -1,0 +1,7 @@
+com/oauth/client/model2/User.class
+com/oauth/client/utils/OauthUtils.class
+com/oauth/client/model2/BankAccount.class
+com/oauth/client/OauthCodeApplication.class
+com/oauth/client/model/AuthCodeForm.class
+com/oauth/client/model/AccessTokenForm.class
+com/oauth/client/controllers/GetAuthCodeController.class

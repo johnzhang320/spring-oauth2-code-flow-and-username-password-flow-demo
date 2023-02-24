@@ -1,0 +1,66 @@
+1. Install mariadb image into docker
+   
+   docker pull mariadb:latest
+   docker image ps
+   REPOSITORY                      TAG                 IMAGE ID            CREATED             SIZE
+   mariadb                         latest              3a2ef06682ac        13 days ago         356MB
+   
+2. create mariadb container to docker
+   docker run -d -e MYSQL_ROOT_PASSWORD=mariadbpwd -p 3308:3308 --name mariadb-server mariadb:latest   
+   (must be 3308 because 3306 is taken)
+   docker container ls
+   CONTAINER ID        IMAGE                         COMMAND                  CREATED             STATUS              PORTS                              NAMES
+   6517c8039da2        mariadb:latest                "docker-entrypoint.s…"   About an hour ago   Up About an hour    3306/tcp, 0.0.0.0:3308->3308/tcp   mariadb-server
+   
+3. Determine mariadb container host name IP after creating docker machine via VisualBox
+
+   docker exec -it mariadb-server cat /etc/hosts   
+    127.0.0.1	localhost
+	::1	localhost ip6-localhost ip6-loopback
+	fe00::0	ip6-localnet
+	ff00::0	ip6-mcastprefix
+	ff02::1	ip6-allnodes
+	ff02::2	ip6-allrouters
+	172.17.0.2	6517c8039da2
+	
+	Here 172.17.0.2 is the hostname IP address of mariadb container
+	this is extremely hard to figure out , which took me 5 hours
+	
+4.  In Java Spring boot application.properties file we still use 3306 and ip 172.17.0.2
+	spring.datasource.driverClassName = org.mariadb.jdbc.Driver
+	spring.datasource.url = jdbc:mariadb://172.17.0.2:3306/securitydb
+	spring.datasource.username = root
+	spring.datasource.password = mariadbpwd
+	
+5. link spring-boot-oauth-server to mariadb docker container when run this spring boot application
+   #!/bin/sh
+	mvn clean
+	mvn install
+	
+	docker rmi -f spring-boot-oauth-server
+	docker build -t spring-boot-oauth-server .
+	 
+	docker run -p 8083:8083 --name spring-boot-oauth-server --link mariadb-server:mariadb spring-boot-oauth-server 	
+	
+	docker container ps
+	
+	jianzhang@jianzhang-MacPro:~/JZWorkspace/RefinedDev/spring-boot-oauth-master$ docker container ps
+	CONTAINER ID        IMAGE                         COMMAND                  CREATED             STATUS              PORTS                              NAMES
+	a4d5fb5104c1        spring-boot-oauth-server      "java -Djava.securit…"   38 seconds ago      Up 37 seconds       3308/tcp, 0.0.0.0:8083->8083/tcp   spring-boot-oauth-server
+	b51376b6c8a0        spring-boot-okta-sso-client   "java -Djava.securit…"   26 minutes ago      Up 26 minutes       3306/tcp, 0.0.0.0:8092->8092/tcp   heuristic_dubinsky
+	6517c8039da2        mariadb:latest                "docker-entrypoint.s…"   About an hour ago   Up About an hour    3306/tcp, 0.0.0.0:3308->3308/tcp   mariadb-server
+	
+6. stop docker container and remove it
+
+Successfully tagged spring-boot-oauth-server:latest
+docker: Error response from daemon: Conflict. The container name "/spring-boot-oauth-server" is already in use by container "a3c112fb28528395603b3bd5da27f6ac5ae2eaa625b69c39e3114468a4a1b91c". You have to remove (or rename) that container to be able to reuse that name.
+See 'docker run --help'.
+$ docker container ps
+CONTAINER ID        IMAGE                         COMMAND                  CREATED             STATUS              PORTS                              NAMES
+b51376b6c8a0        spring-boot-okta-sso-client   "java -Djava.securit…"   22 minutes ago      Up 22 minutes       3306/tcp, 0.0.0.0:8092->8092/tcp   heuristic_dubinsky
+6517c8039da2        mariadb:latest                "docker-entrypoint.s…"   About an hour ago   Up About an hour    3306/tcp, 0.0.0.0:3308->3308/tcp   mariadb-server
+$ docker container stop a3c112fb28528395603b3bd5da27f6ac5ae2eaa625b69c39e3114468a4a1b91c
+a3c112fb28528395603b3bd5da27f6ac5ae2eaa625b69c39e3114468a4a1b91c
+$ docker container rm  a3c112fb28528395603b3bd5da27f6ac5ae2eaa625b69c39e3114468a4a1b91c
+a3c112fb28528395603b3bd5da27f6ac5ae2eaa625b69c39e3114468a4a1b91c
+$ 
